@@ -45,5 +45,3 @@ if response.status_code == 200:
         print(f"  └─ Trello Card Attachments: {trello_attachments}")
 else:
     print(f"Error: {response.status_code}")
-    
-    
