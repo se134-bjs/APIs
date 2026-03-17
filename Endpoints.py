@@ -54,6 +54,20 @@ class DynamicAssistant:
         query = {'key': self.trello_key, 'token': self.trello_token}
         response = requests.get(url, params=query)
         return response.json()
+    
+    def get_card_details(self, card_id):
+        """Fetches full card metadata including description, labels, and checklists."""
+        url = f"https://api.trello.com/1/cards/{card_id}"
+        query = {
+            'key': self.trello_key,
+            'token': self.trello_token,
+            # We explicitly ask for these fields to match your UI screenshot
+            'fields': 'name,desc,due,labels',
+            'checklists': 'all',
+            'members': 'true'
+        }
+        response = requests.get(url, params=query)
+        return response.json()
 
 # --- MAIN EXECUTION ---
 if __name__ == "__main__":
@@ -95,5 +109,35 @@ if __name__ == "__main__":
             else:
                 for card in cards:
                     print(f"  [Card] {card['name']}")
+                    
+                    # ... (Inside the List loop after cards are displayed) ...
+            c_choice = input("\nSelect a Card number to see Details (or 0 for Back): ")
+            if c_choice == '0': break
+            
+            # Fetch the specific card chosen by the user
+            selected_card = cards[int(c_choice) - 1]
+            details = bot.get_card_details(selected_card['id'])
+
+            print(f"\n{'='*40}")
+            print(f" CARD DETAIL: {details.get('name')}")
+            print(f"{'='*40}")
+            print(f"Description: {details.get('desc') or 'No description provided.'}")
+            print(f"Due Date:    {details.get('due') or 'No date set'}")
+            
+            # Display Labels
+            labels = [l['name'] if l['name'] else l['color'] for l in details.get('labels', [])]
+            print(f"Labels:      {', '.join(labels) if labels else 'None'}")
+
+            # Display Checklists (from your screenshot's Checklist button)
+            checklists = details.get('checklists', [])
+            if checklists:
+                print("\n--- Checklists ---")
+                for cl in checklists:
+                    print(f"[{cl['name']}]")
+                    for item in cl['checkItems']:
+                        status = "X" if item['state'] == 'complete' else " "
+                        print(f"  [{status}] {item['name']}")
+            
+            input("\nPress Enter to go back to the list...")
             
             input("\nPress Enter to return to List menu...")
