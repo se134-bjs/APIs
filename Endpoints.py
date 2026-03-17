@@ -7,6 +7,8 @@ load_dotenv()
 
 class DynamicAssistant:
     def __init__(self):
+        
+        self.base_url = os.getenv("base_url")
         # Jira Config
         self.jira_domain = os.getenv("JIRA_DOMAIN")
         self.jira_email = os.getenv("JIRA_EMAIL")
@@ -34,14 +36,14 @@ class DynamicAssistant:
     # --- TRELLO HIERARCHY METHODS (Your new control flow) ---
     def get_trello_boards(self):
         """Step 1: Get all Boards"""
-        url = "https://api.trello.com/1/members/me/boards"
+        url = f"{self.base_url}members/me/boards"
         query = {'key': self.trello_key, 'token': self.trello_token}
         response = requests.get(url, params=query)
         return response.json()
 
     def get_trello_lists(self, board_id):
         """Step 2: Get Lists for a specific Board"""
-        url = f"https://api.trello.com/1/boards/{board_id}/lists"
+        url = f"{self.base_url}boards/{board_id}/lists"
         query = {'key': self.trello_key, 'token': self.trello_token}
         response = requests.get(url, params=query)
         return response.json()
@@ -50,21 +52,22 @@ class DynamicAssistant:
         """Step 3: Get Cards for a specific List"""
         # Fallback to .env if no list_id is passed
         # target_list = list_id or os.getenv("TRELLO_LIST_ID")
-        url = f"https://api.trello.com/1/lists/{list_id}/cards"
+        url = f"{self.base_url}lists/{list_id}/cards"
         query = {'key': self.trello_key, 'token': self.trello_token}
         response = requests.get(url, params=query)
         return response.json()
     
     def get_card_details(self, card_id):
         """Fetches full card metadata including description, labels, and checklists."""
-        url = f"https://api.trello.com/1/cards/{card_id}"
+        url = f"{self.base_url}cards/{card_id}"
         query = {
             'key': self.trello_key,
             'token': self.trello_token,
             # We explicitly ask for these fields to match your UI screenshot
             'fields': 'name,desc,due,labels',
             'checklists': 'all',
-            'members': 'true'
+            'members': 'true',
+            'actions':'commentCard'
         }
         response = requests.get(url, params=query)
         return response.json()
@@ -107,8 +110,8 @@ if __name__ == "__main__":
             if not cards:
                 print("   (No cards found in this list)")
             else:
-                for card in cards:
-                    print(f"  [Card] {card['name']}")
+                for i, card in enumerate(cards,1):
+                    print(f"  {i}.[Card] {card['name']}")
                     
                     # ... (Inside the List loop after cards are displayed) ...
             c_choice = input("\nSelect a Card number to see Details (or 0 for Back): ")
@@ -138,6 +141,16 @@ if __name__ == "__main__":
                         status = "X" if item['state'] == 'complete' else " "
                         print(f"  [{status}] {item['name']}")
             
+            comments = details.get('actions', [])
+            if comments:
+                # print("\n--- Recent Comments ---")
+                for c in comments:
+                    user = c['memberCreator']['fullName']
+                    text = c['data']['text']
+                    # date = c['date'][:10] # Just the YYYY-MM-DD
+                    print(f"Comments: {text}")
+                    # print(f"  {user} ({date}): {text}")
+            
             input("\nPress Enter to go back to the list...")
             
-            input("\nPress Enter to return to List menu...")
+            # input("\nPress Enter to return to List menu...")
