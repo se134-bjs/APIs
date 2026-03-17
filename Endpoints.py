@@ -23,7 +23,12 @@ class DynamicAssistant:
     def get_tasks(self, jql='project = "KAN"'):
         """Fetches issues from Jira. Defaulted to your 'KAN' project from the screenshot."""
         url = f"https://{self.jira_domain}.atlassian.net/rest/api/3/search/jql"
-        response = requests.get(url, auth=self.jira_auth, params={'jql': jql}, headers=self.headers)
+        
+        params ={
+            'jql':jql,
+            'fields': 'summary,status,issuetype'
+        }
+        response = requests.get(url, auth=self.jira_auth, params=params, headers=self.headers)
         return response.json()
 
     # --- TRELLO HIERARCHY METHODS (Your new control flow) ---
