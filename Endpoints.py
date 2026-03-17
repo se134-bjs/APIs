@@ -36,19 +36,21 @@ class DynamicAssistant:
         """Step 1: Get all Boards"""
         url = "https://api.trello.com/1/members/me/boards"
         query = {'key': self.trello_key, 'token': self.trello_token}
-        return requests.get(url, params=query).json()
+        response = requests.get(url, params=query)
+        return response.json()
 
     def get_trello_lists(self, board_id):
         """Step 2: Get Lists for a specific Board"""
         url = f"https://api.trello.com/1/boards/{board_id}/lists"
         query = {'key': self.trello_key, 'token': self.trello_token}
-        return requests.get(url, params=query).json()
+        response = requests.get(url, params=query)
+        return response.json()
 
-    def get_trello_cards(self, list_id=None):
+    def get_trello_cards(self, list_id):
         """Step 3: Get Cards for a specific List"""
         # Fallback to .env if no list_id is passed
-        target_list = list_id or os.getenv("TRELLO_LIST_ID")
-        url = f"https://api.trello.com/1/lists/{target_list}/cards"
+        # target_list = list_id or os.getenv("TRELLO_LIST_ID")
+        url = f"https://api.trello.com/1/lists/{list_id}/cards"
         query = {'key': self.trello_key, 'token': self.trello_token}
         response = requests.get(url, params=query)
         return response.json()
@@ -78,12 +80,27 @@ if __name__ == "__main__":
     # 2. Test Trello Dynamic Control
     print("\n--- Trello Board Control ---")
     boards = bot.get_trello_boards()
-    if isinstance(boards, list) and len(boards) > 0:
-        first_board = boards[0]
-        print(f"Accessing Board: {first_board['name']} ({first_board['id']})")
+    
+    
+    if isinstance(boards, list):
+        print("Your Available Boards:")
+        for index, board in enumerate(boards):
+            print(f"{index}: {board['name']} (ID: {board['id']})")
         
-        # Now we dynamically get lists for THAT board
-        lists = bot.get_trello_lists(first_board['id'])
-        if isinstance(lists, list) and len(lists) > 0:
+        # Dynamic Selection
+        choice = input("\nEnter the number of the board you want to explore: ")
+        selected_board = boards[int(choice)]
+        
+        print(f"\n--- Fetching Lists for Board: {selected_board['name']} ---")
+        lists = bot.get_trello_lists(selected_board['id'])
+        
+        if isinstance(lists, list):
             for l in lists:
-                print(f"  List Found: {l['name']}")
+                print(f"List Found: {l['name']} (ID: {l['id']})")
+                
+                # Optionally: uncomment to see cards for every list automatically
+                # cards = bot.get_trello_cards(l['id'])
+                # for card in cards:
+                #     print(f"  -> Card: {card['name']}")
+    else:
+        print("Could not retrieve boards:", boards)
