@@ -14,23 +14,23 @@ def get_jira_tasks():
 
 # --- TRELLO ENDPOINTS ---
 
-@app.route('/api/trello/boards', methods=['GET'])
+@app.route('/boards', methods=['GET'])
 def get_boards():
     boards = bot.get_trello_boards()
     # We return JSON so a frontend or Postman can read it
     return jsonify(boards)
 
-@app.route('/api/trello/boards/<board_id>/lists', methods=['GET'])
+@app.route('/board/<board_id>/lists', methods=['GET'])
 def get_lists(board_id):
     lists = bot.get_trello_lists(board_id)
     return jsonify(lists)
 
-@app.route('/api/trello/lists/<list_id>/cards', methods=['GET'])
+@app.route('/lists/<list_id>/cards', methods=['GET'])
 def get_cards(list_id):
     cards = bot.get_trello_cards(list_id)
     return jsonify(cards)
 
-@app.route('/api/trello/cards/<card_id>', methods=['GET'])
+@app.route('/cards/<card_id>', methods=['GET'])
 def get_card_info(card_id):
     details = bot.get_card_details(card_id)
     return jsonify(details)
