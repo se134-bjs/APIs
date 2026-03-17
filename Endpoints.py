@@ -59,48 +59,41 @@ class DynamicAssistant:
 if __name__ == "__main__":
     bot = DynamicAssistant()
 
-    # 1. Test Jira (Project KAN)
-    print(f"--- Checking Jira Tasks for {bot.jira_domain} ---")
-    jira_data = bot.get_tasks(jql='project="KAN"') # Now this attribute exists!
-    
-    if 'issues' in jira_data and isinstance(jira_data['issues'], list):
-        issues_found = jira_data['issues']
-        print(f"Total issues found {len(issues_found)}")
-        for issue in issues_found:
-            if 'key' in issue and 'fields' in issue:
-                key = issue['key']
-                summary = issue.get('fields',{}).get('summary','No Summary Provided')
-                print(f"Jira Task: {key} - {summary}")
-            else:
-                print(f"Skipping malformed issue entry:{issue}")
-                
-    else:
-        print("No issues found or API Error. Raw response:", jira_data)
+    while True:
+        print("\n=== TRELLO MAIN MENU (BOARDS) ===")
+        boards = bot.get_trello_boards()
+        
+        for i, b in enumerate(boards, 1): # Start indexing at 1
+            print(f"{i}. {b['name']}")
+        print("0. Exit Program")
 
-    # 2. Test Trello Dynamic Control
-    print("\n--- Trello Board Control ---")
-    boards = bot.get_trello_boards()
-    
-    
-    if isinstance(boards, list):
-        print("Your Available Boards:")
-        for index, board in enumerate(boards):
-            print(f"{index}: {board['name']} (ID: {board['id']})")
+        b_choice = input("\nSelect a Board (or 0 to Exit): ")
+        if b_choice == '0': break
         
-        # Dynamic Selection
-        choice = input("\nEnter the number of the board you want to explore: ")
-        selected_board = boards[int(choice)]
-        
-        print(f"\n--- Fetching Lists for Board: {selected_board['name']} ---")
-        lists = bot.get_trello_lists(selected_board['id'])
-        
-        if isinstance(lists, list):
-            for l in lists:
-                print(f"List Found: {l['name']} (ID: {l['id']})")
-                
-                # Optionally: uncomment to see cards for every list automatically
-                # cards = bot.get_trello_cards(l['id'])
-                # for card in cards:
-                #     print(f"  -> Card: {card['name']}")
-    else:
-        print("Could not retrieve boards:", boards)
+        # Get selected board
+        board = boards[int(b_choice) - 1]
+
+        while True:
+            print(f"\n--- BOARD: {board['name']} (LISTS) ---")
+            lists = bot.get_trello_lists(board['id'])
+            
+            for i, l in enumerate(lists, 1):
+                print(f"{i}. {l['name']}")
+            print("0. BACK to Boards")
+
+            l_choice = input("\nSelect a List to see Cards (or 0 for Back): ")
+            if l_choice == '0': break # This breaks the List loop and goes back to Board loop
+
+            # Get selected list
+            selected_list = lists[int(l_choice) - 1]
+            
+            print(f"\n--- LIST: {selected_list['name']} (CARDS) ---")
+            cards = bot.get_trello_cards(selected_list['id'])
+            
+            if not cards:
+                print("   (No cards found in this list)")
+            else:
+                for card in cards:
+                    print(f"  [Card] {card['name']}")
+            
+            input("\nPress Enter to return to List menu...")
