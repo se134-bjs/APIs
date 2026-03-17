@@ -3,91 +3,82 @@ import requests
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
 load_dotenv()
 
 class DynamicAssistant:
     def __init__(self):
-        # Jira/Confluence Setup
+        # Jira Config
         self.jira_domain = os.getenv("JIRA_DOMAIN")
         self.jira_email = os.getenv("JIRA_EMAIL")
         self.jira_token = os.getenv("JIRA_TOKEN")
         self.jira_auth = HTTPBasicAuth(self.jira_email, self.jira_token)
         
-        # Trello Setup
+        # Trello Config
         self.trello_key = os.getenv("TRELLO_API_KEY")
         self.trello_token = os.getenv("TRELLO_TOKEN")
         
         self.headers = {"Accept": "application/json", "Content-Type": "application/json"}
 
-    # --- DYNAMIC JIRA ENDPOINTS ---
-    
-    def get_all_board_tasks(self):
-        """Fetches Jira tasks dynamically based on JQL [cite: 15]"""
+    # --- JIRA METHODS ---
+    def get_tasks(self, jql='project = "KAN"'):
+        """Fetches issues from Jira. Defaulted to your 'KAN' project from the screenshot."""
         url = f"https://{self.jira_domain}.atlassian.net/rest/api/3/search/jql"
-        query = {'jql':'project="KAN" '}
-        response = requests.get(url, auth=self.auth, params=query, headers=self.headers)
+        response = requests.get(url, auth=self.jira_auth, params={'jql': jql}, headers=self.headers)
         return response.json()
 
-    # --- DYNAMIC TRELLO ENDPOINTS ---
-
-    # def get_trello_cards(self, list_id=None):
-    #     """Fetches cards from a specific Trello list. If no ID is provided, uses .env default."""
-    #     target_list = list_id or os.getenv("TRELLO_LIST_ID")
-    #     url = f"https://api.trello.com/1/lists/{target_list}/cards"
-    #     query = {'key': self.trello_key, 'token': self.trello_token}
-        
-    #     response = requests.get(url, params=query)
-    #     return response.json()
-    
-    # --- TRELLO NAVIGATION ---
-    def get_my_boards(self):
+    # --- TRELLO HIERARCHY METHODS (Your new control flow) ---
+    def get_trello_boards(self):
+        """Step 1: Get all Boards"""
         url = "https://api.trello.com/1/members/me/boards"
         query = {'key': self.trello_key, 'token': self.trello_token}
         return requests.get(url, params=query).json()
 
-    def get_lists_on_board(self, board_id):
+    def get_trello_lists(self, board_id):
+        """Step 2: Get Lists for a specific Board"""
         url = f"https://api.trello.com/1/boards/{board_id}/lists"
         query = {'key': self.trello_key, 'token': self.trello_token}
         return requests.get(url, params=query).json()
 
-    def get_cards_in_list(self, list_id):
-        url = f"https://api.trello.com/1/lists/{list_id}/cards"
+    def get_trello_cards(self, list_id=None):
+        """Step 3: Get Cards for a specific List"""
+        # Fallback to .env if no list_id is passed
+        target_list = list_id or os.getenv("TRELLO_LIST_ID")
+        url = f"https://api.trello.com/1/lists/{target_list}/cards"
         query = {'key': self.trello_key, 'token': self.trello_token}
-        return requests.get(url, params=query).json()
-
-    # --- CONFLUENCE AUTOMATION ---
-
-    def create_confluence_page(self, title, html_content, space_key="PROJ"):
-        """Auto-generates documentation pages like SRS or Backlogs [cite: 16, 21]"""
-        url = f"https://{self.jira_domain}.atlassian.net/wiki/rest/api/content"
-        payload = {
-            "type": "page",
-            "title": title,
-            "space": {"key": space_key},
-            "body": {"storage": {"value": html_content, "representation": "storage"}}
-        }
-        response = requests.post(url, auth=self.jira_auth, json=payload, headers=self.headers)
+        response = requests.get(url, params=query)
         return response.json()
 
 # --- MAIN EXECUTION ---
 if __name__ == "__main__":
     bot = DynamicAssistant()
-    
-    print(f"--- Checking Jira Tasks for {bot.jira_domain} ---")
-    jira_data = bot.get_tasks()
-    
-    if 'issues' in jira_data:
-        for issue in jira_data['issues']:
-            print(f"Jira Task: {issue['key']} - {issue['fields']['summary']}")
-    else:
-        print("Jira Error:", jira_data)
 
-    print(f"\n--- Checking Trello Cards for List ID: {os.getenv('TRELLO_LIST_ID')} ---")
-    trello_cards = bot.get_trello_cards()
+    # 1. Test Jira (Project KAN)
+    print(f"--- Checking Jira Tasks for {bot.jira_domain} ---")
+    jira_data = bot.get_tasks(jql='project="KAN"') # Now this attribute exists!
     
-    if isinstance(trello_cards, list):
-        for card in trello_cards:
-            print(f"Trello Card: {card['name']}")
+    if 'issues' in jira_data and isinstance(jira_data['issues'], list):
+        issues_found = jira_data['issues']
+        print(f"Total issues found {len(issues_found)}")
+        for issue in issues_found:
+            if 'key' in issue and 'fields' in issue:
+                key = issue['key']
+                summary = issue.get('fields',{}).get('summary','No Summary Provided')
+                print(f"Jira Task: {key} - {summary}")
+            else:
+                print(f"Skipping malformed issue entry:{issue}")
+                
     else:
-        print("Trello Error:", trello_cards)
+        print("No issues found or API Error. Raw response:", jira_data)
+
+    # 2. Test Trello Dynamic Control
+    print("\n--- Trello Board Control ---")
+    boards = bot.get_trello_boards()
+    if isinstance(boards, list) and len(boards) > 0:
+        first_board = boards[0]
+        print(f"Accessing Board: {first_board['name']} ({first_board['id']})")
+        
+        # Now we dynamically get lists for THAT board
+        lists = bot.get_trello_lists(first_board['id'])
+        if isinstance(lists, list) and len(lists) > 0:
+            for l in lists:
+                print(f"  List Found: {l['name']}")
