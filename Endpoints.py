@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-class ProjectAssistant:
+class DynamicAssistant:
     def __init__(self):
         # Jira/Confluence Setup
         self.jira_domain = os.getenv("JIRA_DOMAIN")
@@ -22,22 +22,39 @@ class ProjectAssistant:
 
     # --- DYNAMIC JIRA ENDPOINTS ---
     
-    def get_tasks(self, jql="assignee = currentUser() AND statusCategory != Done"):
+    def get_all_board_tasks(self):
         """Fetches Jira tasks dynamically based on JQL [cite: 15]"""
         url = f"https://{self.jira_domain}.atlassian.net/rest/api/3/search/jql"
-        response = requests.get(url, auth=self.jira_auth, params={'jql': jql}, headers=self.headers)
+        query = {'jql':'project="KAN" '}
+        response = requests.get(url, auth=self.auth, params=query, headers=self.headers)
         return response.json()
 
     # --- DYNAMIC TRELLO ENDPOINTS ---
 
-    def get_trello_cards(self, list_id=None):
-        """Fetches cards from a specific Trello list. If no ID is provided, uses .env default."""
-        target_list = list_id or os.getenv("TRELLO_LIST_ID")
-        url = f"https://api.trello.com/1/lists/{target_list}/cards"
-        query = {'key': self.trello_key, 'token': self.trello_token}
+    # def get_trello_cards(self, list_id=None):
+    #     """Fetches cards from a specific Trello list. If no ID is provided, uses .env default."""
+    #     target_list = list_id or os.getenv("TRELLO_LIST_ID")
+    #     url = f"https://api.trello.com/1/lists/{target_list}/cards"
+    #     query = {'key': self.trello_key, 'token': self.trello_token}
         
-        response = requests.get(url, params=query)
-        return response.json()
+    #     response = requests.get(url, params=query)
+    #     return response.json()
+    
+    # --- TRELLO NAVIGATION ---
+    def get_my_boards(self):
+        url = "https://api.trello.com/1/members/me/boards"
+        query = {'key': self.trello_key, 'token': self.trello_token}
+        return requests.get(url, params=query).json()
+
+    def get_lists_on_board(self, board_id):
+        url = f"https://api.trello.com/1/boards/{board_id}/lists"
+        query = {'key': self.trello_key, 'token': self.trello_token}
+        return requests.get(url, params=query).json()
+
+    def get_cards_in_list(self, list_id):
+        url = f"https://api.trello.com/1/lists/{list_id}/cards"
+        query = {'key': self.trello_key, 'token': self.trello_token}
+        return requests.get(url, params=query).json()
 
     # --- CONFLUENCE AUTOMATION ---
 
@@ -55,7 +72,7 @@ class ProjectAssistant:
 
 # --- MAIN EXECUTION ---
 if __name__ == "__main__":
-    bot = ProjectAssistant()
+    bot = DynamicAssistant()
     
     print(f"--- Checking Jira Tasks for {bot.jira_domain} ---")
     jira_data = bot.get_tasks()
