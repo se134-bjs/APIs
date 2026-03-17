@@ -12,7 +12,7 @@ class AtlassianAssistant:
     
     def get_my_open_issues(self):
         """Fetches 'Open' tasks for the current user """
-        url = f"{self.base_url}/rest/api/3/search"
+        url = f"{self.base_url}/rest/api/3/search/jql"
         # JQL is dynamic: only shows tasks assigned to the person logged in
         query = {'jql': 'assignee = currentUser() AND statusCategory != Done'}
         response = requests.get(url, auth=self.auth, params=query, headers=self.headers)
@@ -40,8 +40,18 @@ class AtlassianAssistant:
 
 # --- Example Usage for the 'Smart' Chatbot ---
 user_bot = AtlassianAssistant("your-domain", "user@email.com", "API_TOKEN_1")
-issues = user_bot.get_my_open_issues()
+# issues = user_bot.get_my_open_issues()
 
 
-for issue in issues['issues']:
-    print(f"Task: {issue['key']} - {issue['fields']['summary']}")
+# for issue in issues['issues']:
+#     print(f"Task: {issue['key']} - {issue['fields']['summary']}")
+
+# Replace your current loop with this:
+response_data = user_bot.get_my_open_issues()
+
+if 'issues' in response_data:
+    for issue in response_data['issues']:
+        print(f"Task: {issue['key']} - {issue['fields']['summary']}")
+else:
+    # This will print the actual error from Jira (e.g., Auth failure)
+    print("Error from Jira:", response_data)
