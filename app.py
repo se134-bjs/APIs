@@ -1,8 +1,38 @@
+import os
+from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from Endpoints import DynamicAssistant # Assuming your class is in logic.py
+import google.generativeai as genai
+
+load_dotenv()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
 
 app = Flask(__name__)
 bot = DynamicAssistant()
+
+tools = [
+    bot.get_tasks,
+    bot.get_trello_boards,
+    bot.get_trello_lists,
+    bot.get_trello_cards
+]
+
+model = genai.GenerativeModel(
+    model_name='gemini-2.0-flash',
+    tools=tools
+)
+
+@app.route('/api/chat', methods=['POST'])
+def smart_assistant():
+    user_prompt = request.json.get('prompt')
+    
+    chat=model.start_chat(enable_automatic_function_calling=True)
+    
+    response = chat.send_message(user_prompt)
+    return jsonify({
+        "answer":response.text
+    })
 
 # --- JIRA ENDPOINTS ---
 
