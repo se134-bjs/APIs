@@ -11,6 +11,8 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 app = Flask(__name__)
 bot = DynamicAssistant()
 
+chat_histories = {}
+
 tools = [
     bot.get_tasks,
     bot.get_trello_boards,
@@ -19,17 +21,32 @@ tools = [
 ]
 
 model = genai.GenerativeModel(
-    model_name='gemini-2.0-flash',
+    model_name='gemini-2.5-flash',
     tools=tools
 )
 
 @app.route('/api/chat', methods=['POST'])
 def smart_assistant():
-    user_prompt = request.json.get('prompt')
+    data=request.json
+    user_prompt = data.get('prompt')
+    user_id = data.get('user_id','default_user')
     
-    chat=model.start_chat(enable_automatic_function_calling=True)
+    # Retrive existing history from the user
+    existing_history = chat_histories.get(user_id, [])
+    
+    # Start chat with the history
+    chat = model.start_chat(
+        history=existing_history,
+        enable_automatic_function_calling=True
+    )
+    
+    # user_prompt = request.json.get('prompt')
+    
+    # chat=model.start_chat(enable_automatic_function_calling=True)
     
     response = chat.send_message(user_prompt)
+    
+    chat_histories[user_id] = chat.history
     return jsonify({
         "answer":response.text
     })
