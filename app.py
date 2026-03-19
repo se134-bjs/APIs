@@ -3,11 +3,13 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from Endpoints import DynamicAssistant # Assuming your class is in logic.py
 import google.generativeai as genai
-from openai import OpenAI
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+import json
+# from openai import OpenAI
+from groq import Groq
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# genai.configure(api_key=os.getenv("GROQ_API_KEY"))
 
 
 app = Flask(__name__)
@@ -50,7 +52,7 @@ tools_schema = [
     {
         "type":"function",
         "function":{
-            "name":"get_trello_lists",
+            "name":"get_trello_cards",
             "description":"desc",
             "parameters":{"type":"object", "properties":{"jql":{"type":"string"}}}
         }
@@ -74,7 +76,7 @@ def smart_assistant():
     
     # Step 1 : send the prompt to openai
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="llama-3.3-70b-versatile",
         messages=history,
         tools=tools_schema,
         tool_choice="auto"
@@ -89,14 +91,20 @@ def smart_assistant():
             function_name = tool_call.function.name
             
             # Map the AI request to you DynamicAssistant method
+            args=json.loads(tool_call.function.arguments or "{}")
+            
             if function_name == "get_tasks":
-                result = bot.get_tasks()
-            elif function_name == "get_trello_board":
+                result = bot.get_tasks(jql=args.get("jql",'project="KAN"'))
+            
+            elif function_name == "get_trello_boards":
                 result = bot.get_trello_board()
+            
             elif function_name == "get_trello_lists":
-                result = bot.get_trello_board()
+                result = bot.get_trello_lists(args.get("board_id"))
+            
             elif function_name == "get_trello_cards":
-                result = bot.get_trello_board()
+                result = bot.get_trello_cards(args.get("list_id"))
+            
             else:
                 result="Function Not Found"
                 
@@ -111,12 +119,12 @@ def smart_assistant():
             
             # Get final answer from AI
             second_response=client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="llama-3.3-70b-versatile",
                 messages=history
             )
             final_content = second_response.choices[0].message.content
     else:
-        final_content = response.message.content
+        final_content = response.choices[0].message.content
         
     # Save the history and return
     history.append({"role":"assistant", "content":final_content})
