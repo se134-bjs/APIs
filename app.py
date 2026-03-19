@@ -9,8 +9,6 @@ from groq import Groq
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 load_dotenv()
-# genai.configure(api_key=os.getenv("GROQ_API_KEY"))
-
 
 app = Flask(__name__)
 bot = DynamicAssistant()
@@ -91,13 +89,13 @@ def smart_assistant():
             function_name = tool_call.function.name
             
             # Map the AI request to you DynamicAssistant method
-            args=json.loads(tool_call.function.arguments or "{}")
+            args = json.loads(tool_call.function.arguments or "{}")
             
             if function_name == "get_tasks":
                 result = bot.get_tasks(jql=args.get("jql",'project="KAN"'))
             
             elif function_name == "get_trello_boards":
-                result = bot.get_trello_board()
+                result = bot.get_trello_boards()
             
             elif function_name == "get_trello_lists":
                 result = bot.get_trello_lists(args.get("board_id"))
@@ -109,7 +107,7 @@ def smart_assistant():
                 result="Function Not Found"
                 
             # Feed the data back to OpenAI so it can answer the user
-            history.append(response_message)
+            # history.append(response_message)
             history.append({
                 "role":"tool",
                 "tool_call_id": tool_call.id,
