@@ -74,7 +74,7 @@ def smart_assistant():
     # Maintain history in OpenAI format(lists of messages)
     history = chat_histories.get(user_id, [])
     history.append({"role":"user", "content": user_prompt})
-    try
+    try:
         # Step 1 : send the prompt to openai
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -144,12 +144,12 @@ def smart_assistant():
                     model="llama-3.3-70b-versatile",
                     messages=history
                 )
-            final_content = second_response.choices[0].message.content
+                final_content = second_response.choices[0].message.content
             except Exception as e:
                 final_content = f"Error Generating AI Final Responce:{str(e)}"
     else:
         try:
-        final_content = response.choices[0].message.content
+            final_content = response.choices[0].message.content
         except Exception as e:
             final_content = f"Error reading AI Responce content:{str(e)}"
         
